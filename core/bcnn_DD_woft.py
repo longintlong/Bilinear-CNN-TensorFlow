@@ -271,20 +271,50 @@ class vgg16:
 if __name__ == '__main__':
 
     #with tf.device('/cpu:0'):
-    train_data = h5py.File('../new_train.h5', 'r')
-    val_data = h5py.File('../new_val.h5', 'r')
-    
+    # train_data = h5py.File('../new_train_448.h5', 'r')
+    # val_data = h5py.File('../new_val_224.h5', 'r')
+    #
+    #
+    # print('Input data read complete')
+    #
+    # X_train, Y_train = train_data['X'], train_data['Y']
+    # X_val, Y_val = val_data['X'], val_data['Y']
+    # print(type(X_train))
+    # print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
+    # #X_train, Y_train = shuffle(X_train, Y_train)
+    #
+    # X_val, Y_val = shuffle(X_val, Y_val)
+    # #print Y_train[0]
+    '''
+        Load Training and Validation Data
+        '''
+    target_path = '../train_test/new_train.txt'
+    X_train = []
+    labels = []
+    with open(target_path, 'r', encoding='utf-8') as f:
+        fr = f.readlines()
+        lenth = len(fr)
+        for l in fr:
+            # print(l)
+            l = l.strip('\n').split('***')
+            img = cv2.imread(l[0])
+            img = cv2.resize(img, (448, 448))
+            X_train.append(img)
+            labels.append(int(l[1]))
+    # print(labels)
 
-    print('Input data read complete')
+    Y_train = np.zeros((lenth, 100))
+    for i in range(lenth):
+        Y_train[i][labels[i]] = 1
 
-    X_train, Y_train = train_data['X'], train_data['Y']
-    X_val, Y_val = val_data['X'], val_data['Y']
+    X_val = X_train
+    Y_val = Y_train
+    # print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
 
-    print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
+    '''Shuffle the data'''
     X_train, Y_train = shuffle(X_train, Y_train)
-    
     X_val, Y_val = shuffle(X_val, Y_val)
-    #print Y_train[0]
+    # print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
     print("Device placement on. Creating Session")
     
     #sess = tf.Session(config=tf.ConfigProto(log_device_placement=False))
@@ -327,6 +357,7 @@ if __name__ == '__main__':
     lr = 1.0
     base_lr = 1.0
     break_training_epoch = 15
+    finetune_step = 50
     for epoch in range(100):
         avg_cost = 0.
         total_batch = int(6000/batch_size)
@@ -336,7 +367,7 @@ if __name__ == '__main__':
         
         # Uncomment following section if you want to break training at a particular epoch
 
-        '''
+       
         if epoch==break_training_epoch:
             last_layer_weights = []
             for v in vgg.parameters:
@@ -347,7 +378,7 @@ if __name__ == '__main__':
             np.savez('last_layers_epoch_15.npz',last_layer_weights)
             print("Last layer weights saved")
             break
-        '''
+        
 
         for i in range(total_batch):
             batch_xs, batch_ys = X_train[i*batch_size:i*batch_size+batch_size], Y_train[i*batch_size:i*batch_size+batch_size]
@@ -389,22 +420,22 @@ if __name__ == '__main__':
 
         
 
-    test_data = h5py.File('../new_test.h5', 'r')
-    X_test, Y_test = test_data['X'], test_data['Y']
-    total_test_count = len(X_test)
-    correct_test_count = 0
-    test_batch_size = 10
-    total_test_batch = int(total_test_count/test_batch_size)
-    for i in range(total_test_batch):
-        batch_test_x, batch_test_y = X_test[i*test_batch_size:i*test_batch_size+test_batch_size], Y_test[i*test_batch_size:i*test_batch_size+test_batch_size]
+#     test_data = h5py.File('../new_test.h5', 'r')
+#     X_test, Y_test = test_data['X'], test_data['Y']
+#     total_test_count = len(X_test)
+#     correct_test_count = 0
+#     test_batch_size = 10
+#     total_test_batch = int(total_test_count/test_batch_size)
+#     for i in range(total_test_batch):
+#         batch_test_x, batch_test_y = X_test[i*test_batch_size:i*test_batch_size+test_batch_size], Y_test[i*test_batch_size:i*test_batch_size+test_batch_size]
         
-        pred = sess.run(num_correct_preds, feed_dict = {imgs: batch_test_x, target: batch_test_y})
-        correct_test_count+=pred
+#         pred = sess.run(num_correct_preds, feed_dict = {imgs: batch_test_x, target: batch_test_y})
+#         correct_test_count+=pred
 
-    print("##############################")
-    print("correct_test_count, total_test_count", correct_test_count, total_test_count)
-    print("Test Data Accuracy -->", 100.0*correct_test_count/(1.0*total_test_count))
-    print("##############################")
+#     print("##############################")
+#     print("correct_test_count, total_test_count", correct_test_count, total_test_count)
+#     print("Test Data Accuracy -->", 100.0*correct_test_count/(1.0*total_test_count))
+#     print("##############################")
 
 
 
