@@ -280,7 +280,7 @@ class vgg16:
             Load fc-layer weights trained in the first step. 
             Use file .py to train last layer
             '''
-            last_layer_weights = np.load('last_layers_epoch_10.npz')
+            last_layer_weights = np.load('last_layers_epoch_15.npz')
             print('Last layer weights: last_layers_epoch_10.npz')
             var = tf.get_variable('W', trainable = True)
             print('Adding weights to',var.name)
@@ -296,22 +296,34 @@ if __name__ == '__main__':
     '''
     Load Training and Validation Data
     '''
-    train_data = h5py.File('../new_train.h5', 'r')
-    val_data = h5py.File('../new_val.h5', 'r')
-    
-    print('Input data read complete')
+    target_path = '../train_test/new_train.txt'
+    X_train = []
+    labels = []
+    with open(target_path, 'r', encoding='utf-8') as f:
+        fr = f.readlines()
+        lenth = len(fr)
+        for l in fr:
+            # print(l)
+            l = l.strip('\n').split('***')
+            img = cv2.imread(l[0])
+            img = cv2.resize(img, (448, 448))
+            X_train.append(img)
+            labels.append(int(l[1]))
+    # print(labels)
 
-    X_train, Y_train = train_data['X'], train_data['Y']
-    X_val, Y_val = val_data['X'], val_data['Y']
-    print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
+    Y_train = np.zeros((lenth, 61))
+    for i in range(lenth):
+        Y_train[i][labels[i]] = 1
+
+    X_val = X_train
+    Y_val = Y_train
+    # print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
 
     '''Shuffle the data'''
     X_train, Y_train = shuffle(X_train, Y_train)
     X_val, Y_val = shuffle(X_val, Y_val)
-    print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
-    
-    
-    
+    # print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
+     
     sess = tf.Session()     ## Start session to create training graph
 
     imgs = tf.placeholder(tf.float32, [None, 448, 448, 3])
