@@ -249,8 +249,8 @@ class vgg16:
 
         with tf.name_scope('fc-new') as scope:
 
-            fc3w = tf.get_variable('weights', [512*512, 100], initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
-            fc3b = tf.Variable(tf.constant(1.0, shape=[100], dtype=tf.float32), name='biases', trainable=True)
+            fc3w = tf.get_variable('weights', [512*512, 61], initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
+            fc3b = tf.Variable(tf.constant(1.0, shape=[61], dtype=tf.float32), name='biases', trainable=True)
             self.fc3l = tf.nn.bias_add(tf.matmul(self.z_l2, fc3w), fc3b)
             self.last_layer_parameters += [fc3w, fc3b]
             self.parameters += [fc3w, fc3b]
@@ -290,7 +290,7 @@ if __name__ == '__main__':
     train_labels = []
     with open(target_path, 'r', encoding='utf-8') as f:
         fr = f.readlines()
-        lenth = len(fr)
+        train_lenth = len(fr)
         for l in fr:
             # print(l)
             l = l.strip('\n').split('***')
@@ -300,8 +300,8 @@ if __name__ == '__main__':
             train_labels.append(int(l[1]))
     # print(labels)
 
-    Y_train = np.zeros((lenth, 100))
-    for i in range(lenth):
+    Y_train = np.zeros((train_lenth, 61))
+    for i in range(train_lenth):
         Y_train[i][train_labels[i]] = 1
 
     target_path = '../train_test/new_val.txt'
@@ -309,7 +309,7 @@ if __name__ == '__main__':
     val_labels = []
     with open(target_path, 'r', encoding='utf-8') as f:
         fr = f.readlines()
-        lenth = len(fr)
+        val_lenth = len(fr)
         for l in fr:
             # print(l)
             l = l.strip('\n').split('***')
@@ -317,8 +317,8 @@ if __name__ == '__main__':
             img = cv2.resize(img, (448, 448))
             X_val.append(img)
             val_labels.append(int(l[1]))
-    Y_val = np.zeros((lenth, 100))
-    for i in range(lenth):
+    Y_val = np.zeros((val_lenth, 61))
+    for i in range(val_lenth):
         Y_val[i][val_labels[i]] = 1
     # print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
 
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     #sess = tf.InteractiveSession()
     #with tf.device('/gpu:0'):
     imgs = tf.placeholder(tf.float32, [None, 448, 448, 3])
-    target = tf.placeholder("float", [None,100])
+    target = tf.placeholder("float", [None,61])
     #print 'Creating graph'
     vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
 
@@ -360,7 +360,7 @@ if __name__ == '__main__':
 
     vgg.load_weights(sess)
 
-    batch_size = 2
+    batch_size = 32
 
 
     print('Starting training')
@@ -368,15 +368,12 @@ if __name__ == '__main__':
     lr = 1.0
     base_lr = 1.0
     break_training_epoch = 15
-    #finetune_step = 50
+    finetune_step = 50
     for epoch in range(100):
-        avg_cost = 0.
-        total_batch = int(10/batch_size)
         #X_train, Y_train = shuffle(X_train, Y_train)
 
 
         # Uncomment following section if you want to break training at a particular epoch
-
 
         if epoch==break_training_epoch:
             last_layer_weights = []
@@ -388,8 +385,9 @@ if __name__ == '__main__':
             np.savez('last_layers_epoch_15.npz',last_layer_weights)
             print("Last layer weights saved")
             break
-
-
+        
+        avg_cost = 0.
+        total_batch = int(train_length/(batch_size/2))
         for i in range(total_batch):
             batch_xs, batch_ys = X_train[i*batch_size:i*batch_size+batch_size], Y_train[i*batch_size:i*batch_size+batch_size]
             batch_xs = random_flip_right_to_left(batch_xs)
@@ -411,24 +409,24 @@ if __name__ == '__main__':
                 print("Epoch:", '%03d' % (epoch+1), "Step:", '%03d' % i,"Loss:", str(cost))
                 print("Training Accuracy -->", sess.run(accuracy,feed_dict={imgs: batch_xs, target: batch_ys}))
 
-        # val_batch_size = 10
-        # total_val_count = len(X_val)
-        # correct_val_count = 0
-        # val_loss = 0.0
-        # total_val_batch = int(total_val_count/val_batch_size)
-        # for i in range(total_val_batch):
-        #     batch_val_x, batch_val_y = X_val[i*val_batch_size:i*val_batch_size+val_batch_size], Y_val[i*val_batch_size:i*val_batch_size+val_batch_size]
-        #     print(batch_val_x.shape,type(batch_val_x))
-        #     val_loss += sess.run(loss, feed_dict={imgs: batch_val_x, target: batch_val_y})
-        #
-        #     pred = sess.run(num_correct_preds, feed_dict = {imgs: batch_val_x, target: batch_val_y})
-        #     correct_val_count+=pred
-        #
-        # print("##############################")
-        # print("Validation Loss -->", val_loss)
-        # print("correct_val_count, total_val_count", correct_val_count, total_val_count)
-        # print("Validation Data Accuracy -->", 100.0*correct_val_count/(1.0*total_val_count))
-        # print("##############################")
+        val_batch_size = 32
+        total_val_count = val_length
+        correct_val_count = 0.0
+        val_loss = 0.0
+        total_val_batch = int(total_val_count/val_batch_size)
+        for i in range(total_val_batch):
+            batch_val_x, batch_val_y = X_val[i*val_batch_size:i*val_batch_size+val_batch_size], Y_val[i*val_batch_size:i*val_batch_size+val_batch_size]
+            #print(batch_val_x.shape,type(batch_val_x))
+            val_loss += sess.run(loss, feed_dict={imgs: batch_val_x, target: batch_val_y})
+        
+            pred = sess.run(num_correct_preds, feed_dict = {imgs: batch_val_x, target: batch_val_y})
+            correct_val_count+=pred
+        
+        print("##############################")
+        print("Validation Loss -->", val_loss)
+        print("correct_val_count, total_val_count", correct_val_count, total_val_count)
+        print("Validation Data Accuracy -->", 100.0*correct_val_count/(1.0*total_val_count))
+        print("##############################")
 
         
 
