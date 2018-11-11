@@ -244,9 +244,9 @@ class vgg16:
     def fc_layers(self):
 
         with tf.variable_scope('fc-new') as scope:
-            fc3w = tf.get_variable('W', [512*512, 100], initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
+            fc3w = tf.get_variable('W', [512*512, 61], initializer=tf.contrib.layers.xavier_initializer(), trainable=True)
             #fc3b = tf.Variable(tf.constant(1.0, shape=[100], dtype=tf.float32), name='biases', trainable=True)
-            fc3b = tf.get_variable("b", [100], initializer=tf.constant_initializer(0.1), trainable=True)
+            fc3b = tf.get_variable("b", [61], initializer=tf.constant_initializer(0.1), trainable=True)
             self.fc3l = tf.nn.bias_add(tf.matmul(self.z_l2, fc3w), fc3b)
             self.last_layer_parameters += [fc3w, fc3b]
 
@@ -309,7 +309,7 @@ if __name__ == '__main__':
             img = cv2.resize(img, (448, 448))
             X_val.append(img)
             val_labels.append(int(l[1]))
-    Y_val = np.zeros((val_lenth, 100))
+    Y_val = np.zeros((val_lenth, 61))
     for i in range(val_lenth):
         Y_val[i][val_labels[i]] = 1
     # print("Data shapes -- (train, val, test)", X_train.shape, X_val.shape)
@@ -329,7 +329,7 @@ if __name__ == '__main__':
             train_labels.append(int(l[1]))
     # print(labels)
 
-    Y_train = np.zeros((train_lenth, 100))
+    Y_train = np.zeros((train_lenth, 61))
     for i in range(train_lenth):
         Y_train[i][train_labels[i]] = 1
 
